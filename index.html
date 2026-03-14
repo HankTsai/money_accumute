@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>複利計算機｜雙部位理財模擬</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;background:#f0efe9;color:#1a1a1a;min-height:100vh;padding:2rem 1rem;}
+.page{max-width:900px;margin:0 auto;}
+h1{font-size:22px;font-weight:500;margin-bottom:4px;}
+.subtitle{font-size:14px;color:#888;margin-bottom:2rem;}
+.card{background:#fff;border-radius:14px;border:0.5px solid rgba(0,0,0,0.08);padding:1.5rem 1.75rem;margin-bottom:1.25rem;}
+.sec-title{font-size:13px;font-weight:500;color:#1a1a1a;margin:0 0 12px;padding-bottom:8px;border-bottom:0.5px solid rgba(0,0,0,0.08);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.ctrl .lbl{font-size:12px;color:#666;display:block;margin-bottom:5px;}
+.ctrl .row{display:flex;align-items:center;gap:8px;}
+.ctrl .row input[type=range]{flex:1;height:4px;-webkit-appearance:none;appearance:none;background:#ddd;border-radius:2px;outline:none;cursor:pointer;}
+.ctrl .row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#3266ad;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1.5px #3266ad;}
+.ctrl .val{font-size:13px;font-weight:500;min-width:46px;text-align:right;color:#1a1a1a;}
+.stat{background:#f5f4ee;border-radius:10px;padding:.75rem .875rem;}
+.stat .slbl{font-size:11px;color:#888;margin:0 0 4px;}
+.stat .sval{font-size:16px;font-weight:500;margin:0;}
+.legend-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.lbtn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1px solid #ddd;background:#fff;font-size:12px;color:#555;cursor:pointer;transition:opacity .15s,border-color .15s;}
+.lbtn.off{opacity:.3;}
+.lbtn .dot{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.chart-wrap{position:relative;width:100%;height:320px;}
+.info{padding:.75rem 1rem;border-radius:10px;font-size:12px;line-height:1.75;margin-bottom:8px;}
+.info-gray{background:#f5f4ee;color:#555;}
+.info-amber{background:#faeeda;color:#854f0b;}
+.info-blue{background:#e6f1fb;color:#185fa5;}
+.radio-row{display:flex;gap:16px;margin-top:4px;}
+.radio-row label{display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;color:#444;}
+@media(max-width:600px){.grid2{grid-template-columns:1fr;}.grid5{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>複利計算機｜雙部位理財模擬</h1>
+  <p class="subtitle">分別模擬成長型（資本增值）與收息型（股利）投資組合，計算稅後實質報酬</p>
+
+  <!-- 部位A -->
+  <div class="card">
+    <p class="sec-title">部位 A　成長型（資本增值為主）</p>
+    <div class="grid2">
+      <div class="ctrl"><span class="lbl">本金（萬元）</span><div class="row"><input type="range" id="aP" min="10" max="500" value="100" step="10" oninput="update()"><span class="val" id="aP-o">100萬</span></div></div>
+      <div class="ctrl"><span class="lbl">年資本增值率（%）</span><div class="row"><input type="range" id="aCR" min="0" max="20" value="6" step="1" oninput="update()"><span class="val" id="aCR-o">6%</span></div></div>
+      <div class="ctrl"><span class="lbl">每年追加投入（萬元）</span><div class="row"><input type="range" id="aA" min="0" max="100" value="10" step="5" oninput="update()"><span class="val" id="aA-o">10萬</span></div></div>
+      <div class="ctrl"><span class="lbl">追加投資成長率（% / 年）</span><div class="row"><input type="range" id="aAG" min="-5" max="20" value="3" step="1" oninput="update()"><span class="val" id="aAG-o">+3%</span></div></div>
+    </div>
+  </div>
+
+  <!-- 部位B -->
+  <div class="card">
+    <p class="sec-title">部位 B　收息型（股利為主）</p>
+    <div class="grid2">
+      <div class="ctrl"><span class="lbl">本金（萬元）</span><div class="row"><input type="range" id="bP" min="10" max="500" value="50" step="10" oninput="update()"><span class="val" id="bP-o">50萬</span></div></div>
+      <div class="ctrl"><span class="lbl">股利殖利率（%）</span><div class="row"><input type="range" id="bDY" min="0" max="10" value="4" step="0.5" oninput="update()"><span class="val" id="bDY-o">4%</span></div></div>
+      <div class="ctrl"><span class="lbl">股利所得稅率（%）</span><div class="row"><input type="range" id="bDT" min="0" max="40" value="28" step="1" oninput="update()"><span class="val" id="bDT-o">28%</span></div></div>
+      <div class="ctrl"><span class="lbl">年資本增值率（%）</span><div class="row"><input type="range" id="bCR" min="0" max="15" value="2" step="1" oninput="update()"><span class="val" id="bCR-o">2%</span></div></div>
+      <div class="ctrl"><span class="lbl">每年追加投入（萬元）</span><div class="row"><input type="range" id="bA" min="0" max="100" value="5" step="5" oninput="update()"><span class="val" id="bA-o">5萬</span></div></div>
+      <div class="ctrl"><span class="lbl">追加投資成長率（% / 年）</span><div class="row"><input type="range" id="bAG" min="-5" max="20" value="2" step="1" oninput="update()"><span class="val" id="bAG-o">+2%</span></div></div>
+    </div>
+  </div>
+
+  <!-- 共用 -->
+  <div class="card">
+    <p class="sec-title">共用參數</p>
+    <div class="grid2">
+      <div class="ctrl"><span class="lbl">投資年限（年）</span><div class="row"><input type="range" id="Y" min="5" max="40" value="20" step="1" oninput="update()"><span class="val" id="Y-o">20年</span></div></div>
+      <div class="ctrl"><span class="lbl">年通膨率（%）</span><div class="row"><input type="range" id="INF" min="0" max="10" value="2" step="0.5" oninput="update()"><span class="val" id="INF-o">2%</span></div></div>
+      <div class="ctrl" style="grid-column:1/-1;">
+        <span class="lbl">複利計算頻率</span>
+        <div class="radio-row">
+          <label><input type="radio" name="freq" value="1" checked onchange="update()"> 每年</label>
+          <label><input type="radio" name="freq" value="12" onchange="update()"> 每月</label>
+          <label><input type="radio" name="freq" value="365" onchange="update()"> 每日</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 統計卡 -->
+  <div class="card">
+    <p class="sec-title">模擬結果</p>
+    <div class="grid5" style="margin-bottom:1.25rem;">
+      <div class="stat"><p class="slbl">部位A最終資產</p><p class="sval" id="sc-a" style="color:#1a56db;">—</p></div>
+      <div class="stat"><p class="slbl">部位B最終資產</p><p class="sval" id="sc-b" style="color:#0e7c59;">—</p></div>
+      <div class="stat"><p class="slbl">總資產</p><p class="sval" id="sc-total" style="color:#6d28d9;">—</p></div>
+      <div class="stat"><p class="slbl">實質購買力</p><p class="sval" id="sc-real" style="color:#b45309;">—</p></div>
+      <div class="stat"><p class="slbl">累計股利稅</p><p class="sval" id="sc-tax" style="color:#b91c1c;">—</p></div>
+    </div>
+
+    <!-- 圖例按鈕 -->
+    <div class="legend-wrap" id="legend-btns">
+      <button class="lbtn" data-idx="0" onclick="toggleLine(0)"><span class="dot" style="background:#1a56db;"></span>部位A資產</button>
+      <button class="lbtn" data-idx="1" onclick="toggleLine(1)"><span class="dot" style="background:#0e7c59;"></span>部位B資產</button>
+      <button class="lbtn" data-idx="2" onclick="toggleLine(2)"><span class="dot" style="background:#6d28d9;"></span>總資產</button>
+      <button class="lbtn" data-idx="3" onclick="toggleLine(3)"><span class="dot" style="background:#d97706;"></span>實質購買力</button>
+      <button class="lbtn" data-idx="4" onclick="toggleLine(4)"><span class="dot" style="background:#dc2626;border-radius:1px;"></span>累計股利稅</button>
+      <button class="lbtn" data-idx="5" onclick="toggleLine(5)"><span class="dot" style="background:#0891b2;"></span>物價指數（右軸）</button>
+    </div>
+
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+
+    <div class="info info-gray" id="note-annual" style="margin-top:1rem;"></div>
+    <div class="info info-amber" id="note-tax"></div>
+    <div class="info info-blue" id="note-72"></div>
+  </div>
+</div>
+
+<script>
+let chart;
+const g = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString('zh-TW');
+
+function calcPortfolio(P, cr, dy, dt, A0, ag, Y, inf, n) {
+  const nominal=[], real=[], taxAcc=[];
+  let bal=P, totalTax=0;
+  for (let y=0; y<=Y; y++) {
+    nominal.push(Math.round(bal*10)/10);
+    real.push(Math.round(bal/Math.pow(1+inf,y)*10)/10);
+    taxAcc.push(Math.round(totalTax*10)/10);
+    if (y<Y) {
+      const capG  = bal*(Math.pow(1+cr/n,n)-1);
+      const gross = bal*dy;
+      const netD  = gross*(1-dt);
+      totalTax   += gross*dt;
+      const contrib = A0*Math.pow(1+ag,y);
+      bal = bal+capG+netD+contrib;
+    }
+  }
+  return {nominal,real,taxAcc,totalTax};
+}
+
+// init all buttons as active
+document.querySelectorAll('.lbtn').forEach(b => b.classList.remove('off'));
+
+function update() {
+  const aP  = parseFloat(g('aP').value),  aCR = parseFloat(g('aCR').value)/100;
+  const aA  = parseFloat(g('aA').value),  aAG = parseFloat(g('aAG').value)/100;
+  const bP  = parseFloat(g('bP').value),  bDY = parseFloat(g('bDY').value)/100;
+  const bDT = parseFloat(g('bDT').value)/100, bCR=parseFloat(g('bCR').value)/100;
+  const bA  = parseFloat(g('bA').value),  bAG = parseFloat(g('bAG').value)/100;
+  const Y   = parseInt(g('Y').value);
+  const inf = parseFloat(g('INF').value)/100;
+  const n   = parseInt(document.querySelector('input[name="freq"]:checked').value);
+
+  g('aP-o').textContent  = aP+'萬';
+  g('aCR-o').textContent = (aCR*100).toFixed(0)+'%';
+  g('aA-o').textContent  = aA+'萬';
+  g('aAG-o').textContent = (aAG>=0?'+':'')+(aAG*100).toFixed(0)+'%';
+  g('bP-o').textContent  = bP+'萬';
+  g('bDY-o').textContent = (bDY*100).toFixed(1)+'%';
+  g('bDT-o').textContent = (bDT*100).toFixed(0)+'%';
+  g('bCR-o').textContent = (bCR*100).toFixed(0)+'%';
+  g('bA-o').textContent  = bA+'萬';
+  g('bAG-o').textContent = (bAG>=0?'+':'')+(bAG*100).toFixed(0)+'%';
+  g('Y-o').textContent   = Y+'年';
+  g('INF-o').textContent = (inf*100).toFixed(1)+'%';
+
+  const A = calcPortfolio(aP, aCR, 0,   0,   aA, aAG, Y, inf, n);
+  const B = calcPortfolio(bP, bCR, bDY, bDT, bA, bAG, Y, inf, n);
+
+  const labels = Array.from({length:Y+1},(_,i)=>i+'年');
+  const total  = A.nominal.map((v,i)=>Math.round((v+B.nominal[i])*10)/10);
+  const realT  = A.real.map((v,i)=>Math.round((v+B.real[i])*10)/10);
+  const taxAcc = A.taxAcc.map((v,i)=>Math.round((v+B.taxAcc[i])*10)/10);
+  const cpi    = labels.map((_,i)=>Math.round(Math.pow(1+inf,i)*100*10)/10);
+
+  g('sc-a').textContent     = fmt(A.nominal[Y])+'萬元';
+  g('sc-b').textContent     = fmt(B.nominal[Y])+'萬元';
+  g('sc-total').textContent = fmt(total[Y])+'萬元';
+  g('sc-real').textContent  = fmt(realT[Y])+'萬元';
+  g('sc-tax').textContent   = '−'+fmt(A.totalTax+B.totalTax)+'萬元';
+
+  const midY = Math.round(Y/2);
+  g('note-annual').innerHTML =
+    '部位A追加：第1年 '+aA.toFixed(1)+'萬 → 第'+midY+'年 '+(aA*Math.pow(1+aAG,midY-1)).toFixed(1)+'萬 → 第'+Y+'年 '+(aA*Math.pow(1+aAG,Y-1)).toFixed(1)+'萬<br>'+
+    '部位B追加：第1年 '+bA.toFixed(1)+'萬 → 第'+midY+'年 '+(bA*Math.pow(1+bAG,midY-1)).toFixed(1)+'萬 → 第'+Y+'年 '+(bA*Math.pow(1+bAG,Y-1)).toFixed(1)+'萬';
+
+  const bEff = bCR+bDY*(1-bDT);
+  g('note-tax').textContent =
+    '部位B有效年報酬率：增值 '+(bCR*100).toFixed(0)+'% ＋ 稅後股利 '+(bDY*(1-bDT)*100).toFixed(2)+'%（殖利率 '+(bDY*100).toFixed(1)+'% × 留存 '+((1-bDT)*100).toFixed(0)+'%）= '+(bEff*100).toFixed(2)+'%';
+
+  const r72a = aCR>0?Math.round(72/(aCR*100)):'∞';
+  const r72b = bEff>0?Math.round(72/(bEff*100)):'∞';
+  const i72  = inf>0?Math.round(72/(inf*100)):'∞';
+  g('note-72').textContent =
+    '72法則 — 部位A翻倍：約'+r72a+'年　｜　部位B翻倍：約'+r72b+'年　｜　購買力折半（通膨）：約'+i72+'年';
+
+  const prevHidden = chart ? chart.data.datasets.map(d=>!!d.hidden) : new Array(6).fill(false);
+  if (chart) chart.destroy();
+
+  chart = new Chart(g('chart'), {
+    data:{
+      labels,
+      datasets:[
+        {type:'line', label:'部位A資產',  data:A.nominal,  borderColor:'#1a56db', backgroundColor:'rgba(26,86,219,0.07)',  fill:true,  tension:0.3, pointRadius:0, borderWidth:2.5, yAxisID:'y',  hidden:prevHidden[0]},
+        {type:'line', label:'部位B資產',  data:B.nominal,  borderColor:'#0e7c59', backgroundColor:'rgba(14,124,89,0.07)',   fill:true,  tension:0.3, pointRadius:0, borderWidth:2.5, yAxisID:'y',  hidden:prevHidden[1]},
+        {type:'line', label:'總資產',     data:total,      borderColor:'#6d28d9', backgroundColor:'transparent',            fill:false, tension:0.3, pointRadius:0, borderWidth:3,   yAxisID:'y',  hidden:prevHidden[2]},
+        {type:'line', label:'實質購買力', data:realT,      borderColor:'#d97706', backgroundColor:'rgba(217,119,6,0.06)',   fill:true,  tension:0.3, pointRadius:0, borderWidth:2,   yAxisID:'y',  hidden:prevHidden[3]},
+        {type:'bar',  label:'累計股利稅', data:taxAcc,     backgroundColor:'rgba(220,38,38,0.25)', borderColor:'rgba(220,38,38,0.5)', borderWidth:0.5, yAxisID:'y', hidden:prevHidden[4]},
+        {type:'line', label:'物價指數',   data:cpi,        borderColor:'#0891b2', backgroundColor:'transparent',            fill:false, tension:0.2, pointRadius:0, borderWidth:2,   yAxisID:'y2', hidden:prevHidden[5]}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            label: ctx => ctx.dataset.yAxisID==='y2'
+              ? '物價指數：'+ctx.parsed.y.toFixed(1)
+              : ctx.dataset.label+'：'+ctx.parsed.y.toLocaleString('zh-TW')+'萬元'
+          }
+        }
+      },
+      scales:{
+        x:{ticks:{autoSkip:true,maxTicksLimit:9,font:{size:11},color:'#888'},grid:{display:false}},
+        y:{position:'left',ticks:{font:{size:11},color:'#888',callback:v=>v.toLocaleString('zh-TW')+'萬'},grid:{color:'rgba(0,0,0,0.05)'}},
+        y2:{position:'right',ticks:{font:{size:11},color:'#0891b2',callback:v=>v.toFixed(0)},grid:{drawOnChartArea:false},title:{display:true,text:'物價指數（基期=100）',font:{size:11},color:'#0891b2'}}
+      }
+    }
+  });
+}
+
+function toggleLine(idx) {
+  if (!chart) return;
+  const ds = chart.data.datasets[idx];
+  ds.hidden = !ds.hidden;
+  chart.update();
+  const btn = document.querySelector(`.lbtn[data-idx="${idx}"]`);
+  btn.classList.toggle('off', ds.hidden);
+}
+
+update();
+</script>
+</body>
+</html>
